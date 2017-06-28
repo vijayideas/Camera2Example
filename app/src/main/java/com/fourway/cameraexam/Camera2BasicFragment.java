@@ -27,6 +27,7 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.MediaActionSound;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.os.Handler;
@@ -37,6 +38,7 @@ import android.support.v4.content.ContextCompat;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -70,6 +72,10 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
      */
     private ImageButton flaceImageButton,captureImageButton,flipCameraImageButton;
     private FrameLayout captureFrame;
+
+
+
+    private MediaActionSound mCameraSound;
 
 
     /**
@@ -225,6 +231,7 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
      */
     private Handler mBackgroundHandler;
 
+
     /**
      * An {@link ImageReader} that handles still image capture.
      */
@@ -311,6 +318,7 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
                             runPrecaptureSequence();
                         }
                     }else {
+                        mState = STATE_PICTURE_TAKEN;
                         captureStillPicture();
                     }
                     break;
@@ -337,17 +345,13 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
             }
         }
 
-        @Override
-        public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
-            super.onCaptureStarted(session, request, timestamp, frameNumber);
 
-        }
 
         @Override
         public void onCaptureProgressed(@NonNull CameraCaptureSession session,
                                         @NonNull CaptureRequest request,
                                         @NonNull CaptureResult partialResult) {
-            process(partialResult);
+//            process(partialResult);
         }
 
         @Override
@@ -355,7 +359,10 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
             process(result);
+
         }
+
+
 
     };
 
@@ -441,6 +448,7 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
         captureImageButton = (ImageButton) view.findViewById(R.id.picture);
         captureFrame = (FrameLayout) view.findViewById(R.id.capture_frame);
         captureImageButton.setOnClickListener(this);
+        captureImageButton.setOnTouchListener(camButtonTouchListener);
 //        view.findViewById(R.id.info).setOnClickListener(this);
         mTextureView = (AutoFitTextureView) view.findViewById(R.id.texture);
     }
@@ -449,6 +457,9 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         mFile = new File(getActivity().getExternalFilesDir(null), "pic"+System.currentTimeMillis()+".jpg");
+        // Setup the Camera shutter sound
+        mCameraSound = new MediaActionSound();
+        mCameraSound.load(MediaActionSound.SHUTTER_CLICK);
     }
 
     @Override
@@ -827,6 +838,13 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
         }
     }
 
+    Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
+        }
+    };
+
 
     /**
      * Capture a still picture. This method should be called when we get a response in
@@ -860,27 +878,56 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
                     showToast("Saved: " + mFile);
-                    Log.d(TAG, mFile.toString());
+
+
+                    mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
 
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            captureImageButton.setImageResource(R.drawable.camera);
-                            captureFrame.setVisibility(View.GONE);
+                           captureFrame.setVisibility(View.GONE);
+                            /*captureImageButton.setImageResource(R.drawable.camera);
+                            captureFrame.setVisibility(View.GONE);*/
+
+
+
                         }
                     });
 
                     unlockFocus();
                 }
+
+
+                @Override
+                public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
+                    super.onCaptureStarted(session, request, timestamp, frameNumber);
+
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            captureFrame.setVisibility(View.VISIBLE);
+                            /*captureImageButton.setImageResource(R.drawable.capture);
+                            /*Animation zoomIn = AnimationUtils.loadAnimation(getActivity(), R.anim.bounce);
+                            Animation zoomOut = AnimationUtils.loadAnimation(getActivity(), R.anim.zoom_out);
+
+
+                            captureImageButton.startAnimation(zoomIn);
+                            captureImageButton.startAnimation(zoomOut);*/
+                        }
+                    });
+
+
+                }
             };
 
             mCaptureSession.stopRepeating();
-            mCaptureSession.capture(captureBuilder.build(), CaptureCallback, null);
+            mCaptureSession.capture(captureBuilder.build(), CaptureCallback,null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
 
         }
     }
+
 
 
     /**
@@ -925,15 +972,7 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.picture: {
-                captureImageButton.setImageResource(R.drawable.capture);
-                captureFrame.setVisibility(View.VISIBLE);
-                Animation zoomIn = AnimationUtils.loadAnimation(getActivity(), R.anim.bounce);
-                Animation zoomOut = AnimationUtils.loadAnimation(getActivity(), R.anim.zoom_out);
-                /*MyBounceInterpolator interpolator = new MyBounceInterpolator(0.2, 20);
-                myAnim.setInterpolator(interpolator);*/
 
-                view.startAnimation(zoomIn);
-                view.startAnimation(zoomOut);
 
                 mFile = new File(getActivity().getExternalFilesDir(null), "pic"+System.currentTimeMillis()+".jpg");
                 takePicture();
@@ -951,6 +990,27 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
             }*/
         }
     }
+    int h = 0;
+    private View.OnTouchListener camButtonTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent motionEvent) {
+
+
+            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                captureImageButton.setImageResource(R.drawable.capture);
+                Animation zoomIn = AnimationUtils.loadAnimation(getActivity(), R.anim.bounce);
+                captureImageButton.startAnimation(zoomIn);
+            }
+
+            if (motionEvent.getAction() == MotionEvent.ACTION_UP){
+                captureImageButton.setImageResource(R.drawable.camera);
+                Animation zoomOut = AnimationUtils.loadAnimation(getActivity(), R.anim.zoom_out);
+
+//                captureImageButton.startAnimation(zoomOut);
+            }
+            return false;
+        }
+    };
 
     private void setAutoFlash(CaptureRequest.Builder requestBuilder) {
         if (mFlashSupported) {
