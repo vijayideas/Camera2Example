@@ -28,23 +28,23 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     public void change(View view) {
-       toggleList();
+//       toggleList();
     }
 
-    private void toggleList() {
+    /*private void toggleList() {
         Fragment f = getFragmentManager().findFragmentByTag(GALLERY_FRAGMENT_TAG);
         if (f != null) {
             getFragmentManager().popBackStack();
         } else {
             getFragmentManager().beginTransaction()
-                    .setCustomAnimations(R.animator.slide_up,
+                    *//*.setCustomAnimations(R.animator.slide_up,
                             R.animator.slide_down,
                             R.animator.slide_up,
-                            R.animator.slide_down)
+                            R.animator.slide_down)*//*
                     .add(R.id.container, GalleryFragment
                                     .instantiate(this, GalleryFragment.class.getName()),
                             GALLERY_FRAGMENT_TAG
                     ).addToBackStack(null).commit();
         }
-    }
+    }*/
 }

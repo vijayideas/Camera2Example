@@ -2,8 +2,11 @@ package com.fourway.cameraexam;
 
 
 import android.Manifest;
+import android.animation.Animator;
 import android.animation.AnimatorInflater;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -30,13 +33,21 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaActionSound;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.support.annotation.ColorInt;
 import android.support.annotation.NonNull;
+import android.support.annotation.StringRes;
 import android.support.v13.app.FragmentCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.LayoutInflater;
@@ -50,9 +61,11 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
-import com.fourway.cameraexam.animation.MyBounceInterpolator;
+import com.fourway.cameraexam.view.SlidingRelativeLayout;
+import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -66,6 +79,8 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import static com.fourway.cameraexam.helper.Utils.getFilePaths;
+
 
 public class Camera2BasicFragment extends Fragment implements View.OnClickListener, FragmentCompat.OnRequestPermissionsResultCallback{
 
@@ -74,6 +89,18 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
      */
     private ImageButton flaceImageButton,captureImageButton,flipCameraImageButton;
     private FrameLayout captureFrame;
+    private SlidingRelativeLayout mLayout;
+    private FrameLayout mCameraFrameLayout;
+
+    /************    Gallery     **********/
+    private RelativeLayout mGalleryLayout;
+    private RecyclerView mRecyclerView,mHorizontalRecyclerView;
+    private RelativeLayout tempView;
+    private GalleryAdapter mGalleryAdapter;
+    private GalleryAdapter mHGalleryAdapter;
+
+
+
 
 
 
@@ -85,6 +112,7 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
      */
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final int REQUEST_CAMERA_PERMISSION = 1;
+    private static final int REQUEST_STORAGE_PERMISSION = 2;
     private static final String FRAGMENT_DIALOG = "dialog";
 
     static {
@@ -457,10 +485,15 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
 
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
+        mLayout = (SlidingRelativeLayout) view.findViewById(R.id.sliding_layout);
+        mCameraFrameLayout = (FrameLayout) view.findViewById(R.id.camera_frame_layout);
+        mGalleryLayout = (RelativeLayout) view.findViewById(R.id.gallery_layout);
         captureImageButton = (ImageButton) view.findViewById(R.id.picture);
         flaceImageButton = (ImageButton) view.findViewById(R.id.flip_camera);
         captureFrame = (FrameLayout) view.findViewById(R.id.capture_frame);
         loadAnimations();
+
+        panelListener();
 
         captureImageButton.setOnClickListener(this);
         captureImageButton.setOnTouchListener(camButtonTouchListener);
@@ -468,6 +501,8 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
         flaceImageButton.setOnClickListener(this);
 //        view.findViewById(R.id.info).setOnClickListener(this);
         mTextureView = (AutoFitTextureView) view.findViewById(R.id.texture);
+
+        initGalleryView(view);//gallery
     }
 
     @Override
@@ -518,11 +553,20 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
     }
 
     private void requestCameraPermission() {
-        if (FragmentCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+        if (FragmentCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA) || FragmentCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
             new ConfirmationDialog().show(getChildFragmentManager(), FRAGMENT_DIALOG);
         } else {
-            FragmentCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
+            FragmentCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE},
                     REQUEST_CAMERA_PERMISSION);
+        }
+    }
+
+    private void requestStoragePermission() {
+        if (FragmentCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            new ConfirmationDialog(R.string.request_storage_permission).show(getChildFragmentManager(), FRAGMENT_DIALOG);
+        } else {
+            FragmentCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    REQUEST_STORAGE_PERMISSION);
         }
     }
 
@@ -534,7 +578,14 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
                 ErrorDialog.newInstance(getString(R.string.request_permission))
                         .show(getChildFragmentManager(), FRAGMENT_DIALOG);
             }
-        } else {
+        }else if (requestCode == REQUEST_STORAGE_PERMISSION) {
+            if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                ErrorDialog.newInstance(getString(R.string.request_storage_permission))
+                        .show(getChildFragmentManager(), FRAGMENT_DIALOG);
+            }else {
+                new GetAllImagePathTask().execute();
+            }
+        }else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
@@ -657,10 +708,11 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
      */
     private void openCamera(int width, int height) {
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
+                != PackageManager.PERMISSION_GRANTED ) {
             requestCameraPermission();
             return;
         }
+
         setUpCameraOutputs(width, height);
         configureTransform(width, height);
         Activity activity = getActivity();
@@ -1164,19 +1216,34 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
     /**
      * Shows OK/Cancel confirmation dialog about camera permission.
      */
+    @SuppressLint("ValidFragment")
     public static class ConfirmationDialog extends DialogFragment {
+        int messageId = R.string.request_permission;
+
+        public ConfirmationDialog() {
+        }
+
+        public ConfirmationDialog(@StringRes int messageId) {
+            this.messageId = messageId;
+        }
 
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final Fragment parent = getParentFragment();
             return new AlertDialog.Builder(getActivity())
-                    .setMessage(R.string.request_permission)
+                    .setMessage(messageId)
                     .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-                            FragmentCompat.requestPermissions(parent,
-                                    new String[]{Manifest.permission.CAMERA},
-                                    REQUEST_CAMERA_PERMISSION);
+                            if (messageId == R.string.request_permission) {
+                                FragmentCompat.requestPermissions(parent,
+                                        new String[]{Manifest.permission.CAMERA},
+                                        REQUEST_CAMERA_PERMISSION);
+                            }else {
+                                FragmentCompat.requestPermissions(parent,
+                                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                                        REQUEST_STORAGE_PERMISSION  );
+                            }
                         }
                     })
                     .setNegativeButton(android.R.string.cancel,
@@ -1192,5 +1259,116 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
                     .create();
         }
     }
+
+
+    public void panelListener(){
+        mLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
+            @Override
+            public void onPanelSlide(View panel, float slideOffset) {
+                Log.i(TAG, "onPanelSlide, offset " + slideOffset);
+                View decorView = getActivity().getWindow().getDecorView();
+                if (slideOffset > 0) {
+//                    mHorizontalRecyclerView.setVisibility(View.GONE);
+//                    mRecyclerView.setVisibility(View.VISIBLE);
+//                    if (slideOffset > 0.2)
+                    if (mRecyclerView.getVisibility() != View.VISIBLE) {
+                        mRecyclerView.setVisibility(View.VISIBLE);
+                        mRecyclerView.setAlpha(0);
+                    }
+                    mRecyclerView.setAlpha(slideOffset);
+                    tempView.setAlpha(slideOffset);
+                    mHorizontalRecyclerView.setAlpha(1-slideOffset);
+                    mCameraFrameLayout.setAlpha(1-slideOffset);
+
+                }else {
+                    mHorizontalRecyclerView.setVisibility(View.VISIBLE);
+                    mRecyclerView.setVisibility(View.GONE);
+//                    if (slideOffset < 0.2)
+                }
+
+                if (slideOffset == 1){
+                    // Hide the status bar.
+                    int uiOptions = View.SYSTEM_UI_FLAG_VISIBLE;
+                    decorView.setSystemUiVisibility(uiOptions);
+                }else {
+                    int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+                    decorView.setSystemUiVisibility(uiOptions);
+                }
+            }
+
+            /**
+             * Called when a sliding panel state changes
+             *
+             * @param panel         The child view that was slid to an collapsed position
+             * @param previousState
+             * @param newState
+             */
+            @Override
+            public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
+                Log.i(TAG, "onPanelStateChanged " + newState);
+
+                if (newState == SlidingUpPanelLayout.PanelState.EXPANDED) {
+                    mLayout.setDragViewClickable(true);
+                }else if (newState == SlidingUpPanelLayout.PanelState.COLLAPSED) {
+                    mLayout.setDragViewClickable(false);
+                }else {
+                    mLayout.setDragViewClickable(true);
+                }
+            }
+        });
+
+
+
+    }
+
+
+    private class GetAllImagePathTask extends AsyncTask<Void,Void,List<Uri>> {
+
+        @Override
+        protected List<Uri> doInBackground(Void... params) {
+            List<Uri> imageList = new ArrayList<>();
+
+            ArrayList<File> files = getFilePaths(getActivity());
+            for (File file:files) {
+                imageList.add(Uri.fromFile(file));
+            }
+            return imageList;
+        }
+
+
+        @Override
+        protected void onPostExecute(List<Uri> uris) {
+            super.onPostExecute(uris);
+
+            prepareGallery(uris);
+        }
+    }
+
+    private void initGalleryView(View view) {
+        mRecyclerView = (RecyclerView) view.findViewById(R.id.recycler_view);
+        mHorizontalRecyclerView = (RecyclerView) view.findViewById(R.id.gallery_horizontal);
+        tempView = (RelativeLayout) view.findViewById(R.id.temp_view);
+        tempView.setAlpha(0);
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED ) {
+            requestStoragePermission();
+            return;
+        }
+        new GetAllImagePathTask().execute();
+    }
+
+    private void prepareGallery(List<Uri> uris) {
+        mGalleryAdapter = new GalleryAdapter(getContext(),uris);
+        mHGalleryAdapter = new GalleryAdapter(getContext(), uris, R.layout.gallery_card);
+        mHorizontalRecyclerView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        mHorizontalRecyclerView.setAdapter(mHGalleryAdapter);
+
+        RecyclerView.LayoutManager mLayoutManager = new GridLayoutManager(getContext(), 3);
+        mRecyclerView.setLayoutManager(mLayoutManager);
+        mRecyclerView.setItemAnimator(new DefaultItemAnimator());
+        mRecyclerView.setAdapter(mGalleryAdapter);
+    }
+
+
 
 }

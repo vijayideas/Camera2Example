@@ -2,16 +2,17 @@ package com.fourway.cameraexam.view;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.view.ViewTreeObserver;
-import android.widget.FrameLayout;
-import android.widget.RelativeLayout;
+import android.view.View;
+
+import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 /**
  * Created by 4 way on 29-06-2017.
  */
 
-public class SlidingRelativeLayout extends FrameLayout {
-    private float yFraction = 0;
+public class SlidingRelativeLayout extends SlidingUpPanelLayout {
+
+    private View mDragView;
 
     public SlidingRelativeLayout(Context context) {
         super(context);
@@ -21,36 +22,23 @@ public class SlidingRelativeLayout extends FrameLayout {
         super(context, attrs);
     }
 
-    public SlidingRelativeLayout(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
+    public SlidingRelativeLayout(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
     }
 
-    private ViewTreeObserver.OnPreDrawListener preDrawListener = null;
-
-    public void setYFraction(float fraction) {
-
-        this.yFraction = fraction;
-
-        if (getHeight() == 0) {
-            if (preDrawListener == null) {
-                preDrawListener = new ViewTreeObserver.OnPreDrawListener() {
-                    @Override
-                    public boolean onPreDraw() {
-                        getViewTreeObserver().removeOnPreDrawListener(preDrawListener);
-                        setYFraction(yFraction);
-                        return true;
-                    }
-                };
-                getViewTreeObserver().addOnPreDrawListener(preDrawListener);
-            }
-            return;
+    @Override
+    public void setDragView(View dragView) {
+        super.setDragView(dragView);
+        if (dragView != null) {
+            mDragView = dragView;
+            mDragView.setOnClickListener(null);
+            mDragView.setClickable(false);
         }
-
-        float translationY = getHeight() * fraction;
-        setTranslationY(translationY);
     }
 
-    public float getYFraction() {
-        return this.yFraction;
+    public void setDragViewClickable (boolean clickable) {
+        if (mDragView != null) {
+            mDragView.setClickable(clickable);
+        }
     }
 }

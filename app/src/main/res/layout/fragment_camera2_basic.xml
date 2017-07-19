@@ -6,96 +6,178 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
     
-    <com.fourway.cameraexam.AutoFitTextureView
-        android:id="@+id/texture"
+    
+    <com.fourway.cameraexam.view.SlidingRelativeLayout
+        xmlns:sothree="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/sliding_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        />
+        android:gravity="bottom"
+        sothree:umanoPanelHeight="250dp"
+        sothree:umanoParallaxOffset="100dp"
+        sothree:umanoDragView="@+id/dragView"
+        sothree:umanoOverlay="true"
+        sothree:umanoShadowHeight="0dp"
+        sothree:umanoFadeColor="#000"
+        sothree:umanoScrollableView="@+id/main">
 
-    <FrameLayout
-        android:id="@+id/control"
-        android:layout_width="match_parent"
-        android:layout_height="112dp"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentStart="true"
-        android:layout_marginBottom="64dp"
-        android:background="#00000000">
-
-        <ImageButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            style="@android:style/Widget.Material.Light.Button.Borderless"
-            android:layout_gravity="start|center_vertical"
-            android:src="@drawable/ic_flash_auto_black_24dp"/>
-
-        <ImageButton
-            android:id="@+id/picture"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            style="@android:style/Widget.Material.Light.Button.Borderless"
-            android:layout_gravity="center"
-            android:src="@drawable/camera" />
-
-
-        <ImageButton
-            android:id="@+id/flip_camera"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end|center_vertical"
-            android:layout_marginEnd="16dp"
-            style="@android:style/Widget.Material.Light.Button.Borderless"
-            android:src="@drawable/ic_switch_camera_black_24dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="#fff"
-            android:layout_gravity="bottom|center_horizontal"
-            android:text="Hold for video, tab for photo"/>
-
-        <!--<ImageButton
-            android:id="@+id/info"
-            android:contentDescription="@string/description_info"
-            style="@android:style/Widget.Material.Light.Button.Borderless"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical|right"
-            android:padding="20dp"
-            android:src="@drawable/ic_action_info" />-->
-
-    </FrameLayout>
-
-    <FrameLayout
-        android:id="@+id/capture_frame"
-        android:visibility="gone"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#22ffffff">
-
-        <View
-            android:layout_gravity="top"
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="8dp"
-            android:background="#FFF"/>
-        <View
-            android:layout_gravity="bottom"
+            android:layout_height="match_parent">
+            <FrameLayout
+                android:id="@+id/camera_frame_layout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+            </FrameLayout>
+
+            <com.fourway.cameraexam.AutoFitTextureView
+                android:id="@+id/texture"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                />
+
+            <FrameLayout
+                android:id="@+id/control"
+                android:layout_width="match_parent"
+                android:layout_height="112dp"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentStart="true"
+                android:layout_marginBottom="64dp"
+                android:background="#00000000">
+
+                <ImageButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    style="@android:style/Widget.Material.Light.Button.Borderless"
+                    android:layout_gravity="start|center_vertical"
+                    android:src="@drawable/ic_flash_auto_black_24dp"/>
+
+                <ImageButton
+                    android:id="@+id/picture"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@android:style/Widget.Material.Light.Button.Borderless"
+                    android:layout_gravity="center"
+                    android:src="@drawable/camera" />
+
+
+                <ImageButton
+                    android:id="@+id/flip_camera"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="16dp"
+                    style="@android:style/Widget.Material.Light.Button.Borderless"
+                    android:src="@drawable/ic_switch_camera_black_24dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#fff"
+                    android:layout_gravity="bottom|center_horizontal"
+                    android:text="Hold for video, tab for photo"/>
+
+                <!--<ImageButton
+                    android:id="@+id/info"
+                    android:contentDescription="@string/description_info"
+                    style="@android:style/Widget.Material.Light.Button.Borderless"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical|right"
+                    android:padding="20dp"
+                    android:src="@drawable/ic_action_info" />-->
+
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/capture_frame"
+                android:visibility="gone"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#22ffffff">
+
+                <View
+                    android:layout_gravity="top"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:background="#FFF"/>
+                <View
+                    android:layout_gravity="bottom"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:background="#FFF"/>
+
+                <View
+                    android:layout_gravity="start"
+                    android:layout_width="8dp"
+                    android:layout_height="match_parent"
+                    android:background="#FFF"/>
+                <View
+                    android:layout_gravity="end"
+                    android:layout_width="8dp"
+                    android:layout_height="match_parent"
+                    android:background="#FFF"/>
+
+            </FrameLayout>
+        </RelativeLayout>
+
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="8dp"
-            android:background="#FFF"/>
-
-        <View
-            android:layout_gravity="start"
-            android:layout_width="8dp"
             android:layout_height="match_parent"
-            android:background="#FFF"/>
-        <View
-            android:layout_gravity="end"
-            android:layout_width="8dp"
-            android:layout_height="match_parent"
-            android:background="#FFF"/>
+            android:orientation="vertical"
+            android:focusable="false"
+            android:id="@+id/dragView">
 
-    </FrameLayout>
+            <RelativeLayout
+                android:id="@+id/gallery_layout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <RelativeLayout
+                    android:id="@+id/temp_view"
+                    android:background="#ffffff"
+                    android:layout_width="match_parent"
+                    android:layout_height="120dp">
+                    <ImageButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_alignParentStart="true"
+                        style="@android:style/Widget.Material.Light.Button.Borderless"
+                        android:src="@drawable/ic_arrow_back_black_24dp"/>
+
+                </RelativeLayout>
+
+                <android.support.v7.widget.RecyclerView
+                    android:id="@+id/gallery_horizontal"
+                    android:layout_width="match_parent"
+                    android:background="#00ffffff"
+                    android:layout_marginBottom="0dp"
+                    android:layout_height="120dp"/>
+
+
+                <android.support.v7.widget.RecyclerView
+                    android:background="#fff"
+                    android:layout_marginTop="0dp"
+                    android:layout_below="@+id/gallery_horizontal"
+                    android:id="@+id/recycler_view"
+                    android:visibility="gone"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scrollbars="vertical">
+
+                </android.support.v7.widget.RecyclerView>
+
+            </RelativeLayout>
+        </FrameLayout>
+
+    </com.fourway.cameraexam.view.SlidingRelativeLayout>
+    
+
+
+
 
 
 
