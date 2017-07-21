@@ -1,13 +1,13 @@
 package com.fourway.cameraexam;
 
-import android.app.Fragment;
+
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Toast;
 
 public class CameraActivity extends AppCompatActivity {
     private static final String GALLERY_FRAGMENT_TAG = "gallery_fragment";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

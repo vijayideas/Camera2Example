@@ -4,9 +4,14 @@
 
     <string name="picture">Picture</string>
     <string name="description_info">Info</string>
-    <string name="request_permission">This sample needs camera permission.</string>
+    <string name="request_permission">This sample needs permission for camera and audio recording.</string>
     <string name="request_storage_permission">This sample needs storage permission.</string>
     <string name="camera_error">This device doesn\'t support Camera2 API.</string>
+
+
+    <string name="record">Record</string>
+    <string name="stop">Stop</string>
+    <string name="permission_request">This sample needs permission for camera and audio recording.</string>
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
